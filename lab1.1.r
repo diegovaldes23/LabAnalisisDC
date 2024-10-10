@@ -10,6 +10,8 @@ library(tidyverse)
 library(dplyr)
 library(lmtest)
 library(sandwich)
+library(pROC)
+library(caret)
 
 # Obtener la ruta del directorio de trabajo actual
 current_dir <- getwd()
@@ -177,9 +179,6 @@ print(paste("Precisión del modelo:", round(precision, 4)))
 
 # También se pueden calcular métricas como Sensibilidad y Especificidad.
 
-# Instalar y cargar el paquete pROC para la curva ROC
-library(pROC)
-
 # Calcular la curva ROC y AUC
 roc_obj <- roc(diabetes_data$Outcome, prob_predicciones)
 plot(roc_obj)
@@ -196,6 +195,14 @@ predicciones_binarias_optimo <- ifelse(prob_predicciones > nuevo_umbral, 1, 0)
 
 # Matriz de confusión con el nuevo umbral
 matriz_confusion_optimo <- table(Predicho = predicciones_binarias_optimo, Real = diabetes_data$Outcome)
+
+# Calcular las probabilidades de predicción para la curva ROC
+roc_obj_optimo <- roc(diabetes_data$Outcome, prob_predicciones)
+
+# Graficar la curva ROC para el modelo completo con el nuevo umbral
+plot(roc_obj_optimo, main = "Curva ROC - Modelo Completo (Umbral Óptimo 0.285)", col = "blue", lwd = 2)
+auc_optimo <- auc(roc_obj_optimo)
+cat("Área bajo la curva (AUC) con el umbral óptimo:", auc_optimo, "\n")
 
 # Mostrar la nueva matriz de confusión
 print(matriz_confusion_optimo)
@@ -218,29 +225,35 @@ cat("Nueva Especificidad:", round(especificidad_optima, 4), "\n")
 precision_optima <- mean(predicciones_binarias_optimo == diabetes_data$Outcome)
 cat("Nueva Precisión del modelo:", round(precision_optima, 4), "\n")
 
-# Instalar y cargar el paquete caret para validación cruzada
-install.packages("caret")
-library(caret)
-
 # Configurar los parámetros de validación cruzada
 control <- trainControl(method = "cv", number = 10)  # 10 pliegues
 
-# Ajustar el modelo con validación cruzada
-modelo_cv <- train(Outcome ~ Pregnancies + Glucose + BloodPressure + SkinThickness + Insulin + BMI + DiabetesPedigreeFunction + Age, 
-                   data = diabetes_data, 
-                   method = "glm", 
-                   family = binomial, 
-                   trControl = control)
-
-# Mostrar los resultados de la validación cruzada
-print(modelo_cv)
-
-# Mostrar la importancia de los predictores
-summary(modelo_logistico)
-
-# Ajustar un nuevo modelo sin las variables no significativas
-modelo_logistico_reducido <- glm(Outcome ~ Glucose + BMI + DiabetesPedigreeFunction + Age, 
+# Ajustar el modelo reducido (3 variables: Glucose, BMI, DiabetesPedigreeFunction)
+modelo_logistico_reducido <- glm(Outcome ~ Glucose + BMI + DiabetesPedigreeFunction, 
                                  data = diabetes_data, 
                                  family = binomial)
-summary(modelo_logistico_reducido)
+
+# Predecir probabilidades para el modelo reducido
+prob_predicciones_reducido <- predict(modelo_logistico_reducido, type = "response")
+
+# Aplicar el umbral óptimo también al modelo reducido
+predicciones_binarias_reducido <- ifelse(prob_predicciones_reducido > nuevo_umbral, 1, 0)
+
+# Matriz de confusión para el modelo reducido
+matriz_confusion_reducido <- table(Predicho = predicciones_binarias_reducido, Real = diabetes_data$Outcome)
+print(matriz_confusion_reducido)
+
+# Generar la curva ROC para el modelo reducido
+roc_obj_reducido <- roc(diabetes_data$Outcome, prob_predicciones_reducido)
+
+# Graficar la curva ROC para el modelo reducido
+plot(roc_obj_reducido, main = "Curva ROC - Modelo Reducido (Umbral Óptimo 0.285)", col = "red", lwd = 2)
+auc_reducido <- auc(roc_obj_reducido)
+cat("Área bajo la curva (AUC) para el modelo reducido:", auc_reducido, "\n")
+
+# Graficar ambas curvas ROC en el mismo gráfico para comparar
+plot(roc_obj_optimo, main = "Curvas ROC - Comparación Modelo Completo vs. Reducido", col = "blue", lwd = 2)
+lines(roc_obj_reducido, col = "red", lwd = 2)
+legend("bottomright", legend = c("Modelo Completo", "Modelo Reducido"), col = c("blue", "red"), lwd = 2)
+
 
