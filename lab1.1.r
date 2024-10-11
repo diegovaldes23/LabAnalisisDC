@@ -12,6 +12,7 @@ library(lmtest)
 library(sandwich)
 library(pROC)
 library(caret)
+library(GGally)
 
 # Obtener la ruta del directorio de trabajo actual
 current_dir <- getwd()
@@ -36,6 +37,20 @@ str(diabetes_data)
 
 # Resumen estadístico básico de todas las variables
 summary(diabetes_data)
+
+# Calcular la matriz de correlación
+correlation_matrix <- cor(diabetes_data %>% select_if(is.numeric))
+
+# Graficar la matriz de correlación con ggplot2
+library(reshape2)
+corr_melt <- melt(correlation_matrix)
+
+ggplot(data = corr_melt, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0) +
+  labs(title = "Matriz de correlación entre variables numéricas") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 
 # Parte 2: Limpieza de datos
 # Al analizar el resumen estadístico se destaca que los valores de 0 en las variables como Glucose,
@@ -102,16 +117,60 @@ shapiro.test(diabetes_data$SkinThickness)
 shapiro.test(diabetes_data$Insulin)
 shapiro.test(diabetes_data$BMI)
 shapiro.test(diabetes_data$Age)
+shapiro.test(diabetes_data$Pregnancies)
+shapiro.test(diabetes_data$DiabetesPedigreeFunction)
 
 # Variable -> p-valor	
 # Glucose	      3.442e-08	   No es normal
 # BloodPressure	0.008712	   No es normal
 # SkinThickness	0.001991	   No es normal
-# Insulin	      < 2.2e-16	   No es normal
 # BMI	          1.657e-06	   No es normal
 # Age	          < 2.2e-16	   No es normal
+# Pregnancies
+# DiabetesPedigreeFunction
+# Insulin	      < 2.2e-16	   No es normal
 
 # Ninguna de las variables sigue con una distribución normal.
+
+# Boxplot de Glucose por Outcome
+ggplot(diabetes_data, aes(x = Outcome, y = Glucose, fill = Outcome)) +
+  geom_boxplot() +
+  labs(title = "Boxplot de Glucose por Outcome", x = "Outcome", y = "Glucose")
+
+# Boxplot de BMI por Outcome
+ggplot(diabetes_data, aes(x = Outcome, y = BMI, fill = Outcome)) +
+  geom_boxplot() +
+  labs(title = "Boxplot de BMI por Outcome", x = "Outcome", y = "BMI")
+
+# Boxplot de BloodPressure por Outcome
+ggplot(diabetes_data, aes(x = Outcome, y = BloodPressure, fill = Outcome)) +
+  geom_boxplot() +
+  labs(title = "Boxplot de BloodPressure por Outcome", x = "Outcome", y = "BloodPressure")
+
+# Boxplot de SkinThickness por Outcome
+ggplot(diabetes_data, aes(x = Outcome, y = SkinThickness, fill = Outcome)) +
+  geom_boxplot() +
+  labs(title = "Boxplot de SkinThickness por Outcome", x = "Outcome", y = "SkinThickness")
+
+# Boxplot de Age por Outcome
+ggplot(diabetes_data, aes(x = Outcome, y = Age, fill = Outcome)) +
+  geom_boxplot() +
+  labs(title = "Boxplot de Age por Outcome", x = "Outcome", y = "Age")
+
+# Boxplot de Pregnancies por Outcome
+ggplot(diabetes_data, aes(x = Outcome, y = Pregnancies, fill = Outcome)) +
+  geom_boxplot() +
+  labs(title = "Boxplot de Pregnancies por Outcome", x = "Outcome", y = "Pregnancies")
+
+# Boxplot de DiabetesPedigreeFunction por Outcome
+ggplot(diabetes_data, aes(x = Outcome, y = DiabetesPedigreeFunction, fill = Outcome)) +
+  geom_boxplot() +
+  labs(title = "Boxplot de DiabetesPedigreeFunction por Outcome", x = "Outcome", y = "DiabetesPedigreeFunction")
+
+# Boxplot de Insulin por Outcome
+ggplot(diabetes_data, aes(x = Outcome, y = Insulin, fill = Outcome)) +
+  geom_boxplot() +
+  labs(title = "Boxplot de Insulin por Outcome", x = "Outcome", y = "Insulin")
 
 # Parte 5: Prueba no paramétrica (Wilcoxon) para todas las variables numéricas
 
@@ -150,6 +209,28 @@ modelo_logistico <- glm(Outcome ~ Pregnancies + Glucose + BloodPressure + SkinTh
 # Resumen del modelo
 summary(modelo_logistico)
 
+# Graficar pair plot
+ggpairs(diabetes_data, aes(color = Outcome))
+
+# Obtener los coeficientes del modelo de regresión logística
+coeficientes <- as.data.frame(coef(modelo_logistico))
+
+# Renombrar la columna con los coeficientes
+colnames(coeficientes) <- "Coeficiente"
+
+# Crear una columna con los nombres de las variables
+coeficientes$Variable <- rownames(coeficientes)
+
+# Eliminar la fila del intercepto, si no deseas incluirla
+coeficientes <- coeficientes[-1, ]
+
+# Graficar los coeficientes
+ggplot(coeficientes, aes(x = reorder(Variable, Coeficiente), y = Coeficiente)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Importancia de las variables en el modelo logístico",
+       x = "Variables", y = "Coeficientes del modelo")
+
 # Predecir probabilidades de tener diabetes (Outcome = 1)
 prob_predicciones <- predict(modelo_logistico, type = "response")
 
@@ -186,6 +267,12 @@ auc(roc_obj)
 
 # Encontrar el mejor umbral según la curva ROC
 coords(roc_obj, "best", ret = "threshold")
+
+# Crear un gráfico de barras para la matriz de confusión del modelo completo
+confusion_data <- as.data.frame(as.table(matriz_confusion))
+ggplot(confusion_data, aes(x = Real, y = Freq, fill = Predicho)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Matriz de Confusión - Modelo Completo", x = "Valor Real", y = "Frecuencia")
 
 # Aplicar el nuevo umbral óptimo
 nuevo_umbral <- 0.2853508
@@ -233,6 +320,13 @@ modelo_logistico_reducido <- glm(Outcome ~ Glucose + BMI + DiabetesPedigreeFunct
                                  data = diabetes_data, 
                                  family = binomial)
 
+# Graficar residuals vs fitted values
+plot(fitted(modelo_logistico), residuals(modelo_logistico), 
+     main = "Residuals vs Fitted", 
+     xlab = "Valores ajustados", 
+     ylab = "Residuos")
+abline(h = 0, col = "red", lwd = 2)
+
 # Predecir probabilidades para el modelo reducido
 prob_predicciones_reducido <- predict(modelo_logistico_reducido, type = "response")
 
@@ -242,6 +336,12 @@ predicciones_binarias_reducido <- ifelse(prob_predicciones_reducido > nuevo_umbr
 # Matriz de confusión para el modelo reducido
 matriz_confusion_reducido <- table(Predicho = predicciones_binarias_reducido, Real = diabetes_data$Outcome)
 print(matriz_confusion_reducido)
+
+# Crear un gráfico de barras para la matriz de confusión del modelo reducido
+confusion_data_reducido <- as.data.frame(as.table(matriz_confusion_reducido))
+ggplot(confusion_data_reducido, aes(x = Real, y = Freq, fill = Predicho)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Matriz de Confusión - Modelo Reducido", x = "Valor Real", y = "Frecuencia")
 
 # Generar la curva ROC para el modelo reducido
 roc_obj_reducido <- roc(diabetes_data$Outcome, prob_predicciones_reducido)
