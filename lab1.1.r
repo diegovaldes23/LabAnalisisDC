@@ -13,6 +13,7 @@ library(sandwich)
 library(pROC)
 library(caret)
 library(GGally)
+library(reshape2)
 
 # Obtener la ruta del directorio de trabajo actual
 current_dir <- getwd()
@@ -42,7 +43,6 @@ summary(diabetes_data)
 correlation_matrix <- cor(diabetes_data %>% select_if(is.numeric))
 
 # Graficar la matriz de correlación con ggplot2
-library(reshape2)
 corr_melt <- melt(correlation_matrix)
 
 ggplot(data = corr_melt, aes(Var1, Var2, fill = value)) +
@@ -225,7 +225,7 @@ coeficientes$Variable <- rownames(coeficientes)
 coeficientes <- coeficientes[-1, ]
 
 # Graficar los coeficientes
-ggplot(coeficientes, aes(x = reorder(Variable, Coeficiente), y = Coeficiente)) +
+ggplot(coeficientes, aes(x = reorder(Variable, abs(Coeficiente)), y = Coeficiente)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   coord_flip() +
   labs(title = "Importancia de las variables en el modelo logístico",
@@ -316,15 +316,17 @@ cat("Nueva Precisión del modelo:", round(precision_optima, 4), "\n")
 control <- trainControl(method = "cv", number = 10)  # 10 pliegues
 
 # Ajustar el modelo reducido (3 variables: Glucose, BMI, DiabetesPedigreeFunction)
-modelo_logistico_reducido <- glm(Outcome ~ Glucose + BMI + DiabetesPedigreeFunction, 
-                                 data = diabetes_data, 
-                                 family = binomial)
+modelo_logistico_cv <- train(Outcome ~ Glucose + BMI + DiabetesPedigreeFunction, 
+                             data = diabetes_data, 
+                             method = "glm", 
+                             family = binomial, 
+                             trControl = control)
 
 # Graficar residuals vs fitted values
-plot(fitted(modelo_logistico), residuals(modelo_logistico), 
+plot(fitted(modelo_logistico), residuals(modelo_logistico, type = "deviance"), 
      main = "Residuals vs Fitted", 
      xlab = "Valores ajustados", 
-     ylab = "Residuos")
+     ylab = "Residuos deviance")
 abline(h = 0, col = "red", lwd = 2)
 
 # Predecir probabilidades para el modelo reducido
