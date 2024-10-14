@@ -14,6 +14,7 @@ library(pROC)
 library(caret)
 library(GGally)
 library(reshape2)
+library(pheatmap)
 
 # Obtener la ruta del directorio de trabajo actual
 current_dir <- getwd()
@@ -80,6 +81,20 @@ sapply(diabetes_data, function(x) c(Media = mean(x, na.rm = TRUE),
 # Contar el número de filas (mujeres) en el conjunto de datos 
 nrow(diabetes_data)
 
+# Calcular la matriz de correlación
+correlation_matrix2 <- cor(diabetes_data %>% select_if(is.numeric))
+
+# Graficar la matriz de correlación con ggplot2 con los nuevos datos
+corr_melt2 <- melt(correlation_matrix2)
+
+ggplot(data = corr_melt, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0) +
+  labs(title = "Matriz de correlación entre variables numéricas con datos limpios") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
 # Parte 4: Visualización de la distribución de las variables
 
 # Histograma con curva de densidad para Glucosa
@@ -126,8 +141,8 @@ shapiro.test(diabetes_data$DiabetesPedigreeFunction)
 # SkinThickness	0.001991	   No es normal
 # BMI	          1.657e-06	   No es normal
 # Age	          < 2.2e-16	   No es normal
-# Pregnancies
-# DiabetesPedigreeFunction
+# Pregnancies   < 2.2e-16    No es normal
+# DiabetesPedigreeFunction < 2.2e-16 No es normal
 # Insulin	      < 2.2e-16	   No es normal
 
 # Ninguna de las variables sigue con una distribución normal.
@@ -240,6 +255,11 @@ predicciones_binarias <- ifelse(prob_predicciones > 0.35, 1, 0)
 # Matriz de confusión
 matriz_confusion <- table(Predicho = predicciones_binarias, Real = diabetes_data$Outcome)
 
+# Graficar la matriz de confusión
+pheatmap(as.matrix(matriz_confusion), display_numbers = TRUE, color = colorRampPalette(c("bisque", "aquamarine"))(50), 
+         fontsize_number = 14, legend = TRUE, main = "Matriz de Confusión", cluster_rows = FALSE, cluster_cols = FALSE)
+
+
 # Calcular sensibilidad y especificidad
 VP <- matriz_confusion[2, 2]  # Verdaderos positivos (Outcome = 1 y predicho = 1)
 VN <- matriz_confusion[1, 1]  # Verdaderos negativos (Outcome = 0 y predicho = 0)
@@ -259,6 +279,7 @@ precision <- mean(predicciones_binarias == diabetes_data$Outcome)
 print(paste("Precisión del modelo:", round(precision, 4)))
 
 # También se pueden calcular métricas como Sensibilidad y Especificidad.
+
 
 # Calcular la curva ROC y AUC
 roc_obj <- roc(diabetes_data$Outcome, prob_predicciones)
@@ -294,6 +315,11 @@ cat("Área bajo la curva (AUC) con el umbral óptimo:", auc_optimo, "\n")
 # Mostrar la nueva matriz de confusión
 print(matriz_confusion_optimo)
 
+# Graficar la matriz de confusión
+pheatmap(as.matrix(matriz_confusion_optimo), display_numbers = TRUE, color = colorRampPalette(c("bisque", "aquamarine"))(50), 
+         fontsize_number = 14, legend = TRUE, main = "Matriz de Confusión", cluster_rows = FALSE, cluster_cols = FALSE)
+
+
 # Calcular la nueva sensibilidad y especificidad
 VP_optimo <- matriz_confusion_optimo[2, 2]  # Verdaderos positivos
 VN_optimo <- matriz_confusion_optimo[1, 1]  # Verdaderos negativos
@@ -304,9 +330,11 @@ FN_optimo <- matriz_confusion_optimo[1, 2]  # Falsos negativos
 sensibilidad_optima <- VP_optimo / (VP_optimo + FN_optimo)
 cat("Nueva Sensibilidad:", round(sensibilidad_optima, 4), "\n")
 
+
 # Especificidad
 especificidad_optima <- VN_optimo / (VN_optimo + FP_optimo)
 cat("Nueva Especificidad:", round(especificidad_optima, 4), "\n")
+
 
 # Calcular la precisión del modelo con el nuevo umbral
 precision_optima <- mean(predicciones_binarias_optimo == diabetes_data$Outcome)
@@ -316,21 +344,22 @@ cat("Nueva Precisión del modelo:", round(precision_optima, 4), "\n")
 control <- trainControl(method = "cv", number = 10)  # 10 pliegues
 
 # Ajustar el modelo reducido (3 variables: Glucose, BMI, DiabetesPedigreeFunction)
-modelo_logistico_cv <- train(Outcome ~ Glucose + BMI + DiabetesPedigreeFunction, 
-                             data = diabetes_data, 
-                             method = "glm", 
-                             family = binomial, 
-                             trControl = control)
+modelo_logistico_reducido <- train(Outcome ~ Glucose + BMI + DiabetesPedigreeFunction, 
+                                   data = diabetes_data, 
+                                   method = "glm", 
+                                   family = binomial, 
+                                   trControl = control)
 
-# Graficar residuals vs fitted values
+# Graficar residuals vs fitted values para el modelo original (opcional)
 plot(fitted(modelo_logistico), residuals(modelo_logistico, type = "deviance"), 
      main = "Residuals vs Fitted", 
      xlab = "Valores ajustados", 
      ylab = "Residuos deviance")
 abline(h = 0, col = "red", lwd = 2)
 
-# Predecir probabilidades para el modelo reducido
-prob_predicciones_reducido <- predict(modelo_logistico_reducido, type = "response")
+### ---------------------------------------------
+# Predecir probabilidades para el modelo reducido (probabilidad de clase 1)
+prob_predicciones_reducido <- predict(modelo_logistico_reducido, type = "prob")[,2]  # Extraer la probabilidad de la clase 1
 
 # Aplicar el umbral óptimo también al modelo reducido
 predicciones_binarias_reducido <- ifelse(prob_predicciones_reducido > nuevo_umbral, 1, 0)
@@ -338,6 +367,7 @@ predicciones_binarias_reducido <- ifelse(prob_predicciones_reducido > nuevo_umbr
 # Matriz de confusión para el modelo reducido
 matriz_confusion_reducido <- table(Predicho = predicciones_binarias_reducido, Real = diabetes_data$Outcome)
 print(matriz_confusion_reducido)
+
 
 # Crear un gráfico de barras para la matriz de confusión del modelo reducido
 confusion_data_reducido <- as.data.frame(as.table(matriz_confusion_reducido))
