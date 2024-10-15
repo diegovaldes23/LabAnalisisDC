@@ -34,6 +34,23 @@ if (length(file_path) > 0) {
 # Mostrar las primeras filas del conjunto de datos
 head(diabetes_data)
 
+# Reemplazar los ceros por NA en las columnas donde no tiene sentido que haya ceros
+diabetes_data$Glucose[diabetes_data$Glucose == 0] <- NA
+diabetes_data$BloodPressure[diabetes_data$BloodPressure == 0] <- NA
+diabetes_data$SkinThickness[diabetes_data$SkinThickness == 0] <- NA
+diabetes_data$Insulin[diabetes_data$Insulin == 0] <- NA
+diabetes_data$BMI[diabetes_data$BMI == 0] <- NA
+diabetes_data$DiabetesPedigreeFunction[diabetes_data$DiabetesPedigreeFunction == 0] <- NA
+
+diabetes_data$Glucose[is.na(diabetes_data$Glucose)] <- mean(diabetes_data$Glucose, na.rm = TRUE)
+diabetes_data$BloodPressure[is.na(diabetes_data$BloodPressure)] <- mean(diabetes_data$BloodPressure, na.rm = TRUE)
+diabetes_data$SkinThickness[is.na(diabetes_data$SkinThickness)] <- mean(diabetes_data$SkinThickness, na.rm = TRUE)
+diabetes_data$Insulin[is.na(diabetes_data$Insulin)] <- mean(diabetes_data$Insulin, na.rm = TRUE)
+diabetes_data$BMI[is.na(diabetes_data$BMI)] <- mean(diabetes_data$BMI, na.rm = TRUE)
+diabetes_data$DiabetesPedigreeFunction[is.na(diabetes_data$DiabetesPedigreeFunction)] <- mean(diabetes_data$DiabetesPedigreeFunction, na.rm = TRUE)
+
+head(diabetes_data)
+
 # Estructura de los datos
 str(diabetes_data)
 
