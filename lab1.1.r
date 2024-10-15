@@ -34,6 +34,13 @@ if (length(file_path) > 0) {
 # Mostrar las primeras filas del conjunto de datos
 head(diabetes_data)
 
+# Parte 2: Limpieza de datos
+# Al analizar el resumen estadístico se destaca que los valores de 0 en las variables como Glucose,
+# BloodPressure, SkinThickness, Insulin, y BMI probablemente representan datos faltantes. 
+# Esto es importante para limpiar los datos antes de realizar cualquier análisis inferencial, ya que, se puede malinterpretar 
+# el análisis si se colocan estos datos.
+# Por lo tanto, reemplazar valores de 0 por NA en las variables específicas.
+
 # Reemplazar los ceros por NA en las columnas donde no tiene sentido que haya ceros
 diabetes_data$Glucose[diabetes_data$Glucose == 0] <- NA
 diabetes_data$BloodPressure[diabetes_data$BloodPressure == 0] <- NA
@@ -70,21 +77,6 @@ ggplot(data = corr_melt, aes(Var1, Var2, fill = value)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
-# Parte 2: Limpieza de datos
-# Al analizar el resumen estadístico se destaca que los valores de 0 en las variables como Glucose,
-# BloodPressure, SkinThickness, Insulin, y BMI probablemente representan datos faltantes. 
-# Esto es importante para limpiar los datos antes de realizar cualquier análisis inferencial, ya que, se puede malinterpretar 
-# el análisis si se colocan estos datos.
-# Por lo tanto, reemplazar valores de 0 por NA en las variables específicas.
-diabetes_data$Glucose[diabetes_data$Glucose == 0] <- NA
-diabetes_data$BloodPressure[diabetes_data$BloodPressure == 0] <- NA
-diabetes_data$SkinThickness[diabetes_data$SkinThickness == 0] <- NA
-diabetes_data$Insulin[diabetes_data$Insulin == 0] <- NA
-diabetes_data$BMI[diabetes_data$BMI == 0] <- NA
-
-# Eliminar filas con cualquier NA
-diabetes_data <- na.omit(diabetes_data)
-
 # Resumen estadístico básico de todas las variables, con los datos limpios.
 summary(diabetes_data)
 
@@ -97,18 +89,6 @@ sapply(diabetes_data, function(x) c(Media = mean(x, na.rm = TRUE),
 
 # Contar el número de filas (mujeres) en el conjunto de datos 
 nrow(diabetes_data)
-
-# Calcular la matriz de correlación
-correlation_matrix2 <- cor(diabetes_data %>% select_if(is.numeric))
-
-# Graficar la matriz de correlación con ggplot2 con los nuevos datos
-corr_melt2 <- melt(correlation_matrix2)
-
-ggplot(data = corr_melt, aes(Var1, Var2, fill = value)) +
-  geom_tile() +
-  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0) +
-  labs(title = "Matriz de correlación entre variables numéricas con datos limpios") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 
@@ -153,10 +133,10 @@ shapiro.test(diabetes_data$Pregnancies)
 shapiro.test(diabetes_data$DiabetesPedigreeFunction)
 
 # Variable -> p-valor	
-# Glucose	      3.442e-08	   No es normal
-# BloodPressure	0.008712	   No es normal
-# SkinThickness	0.001991	   No es normal
-# BMI	          1.657e-06	   No es normal
+# Glucose	      1.777e-11	   No es normal
+# BloodPressure	6.463e-6	   No es normal
+# SkinThickness	2.2e-16	   No es normal
+# BMI	          6.526e-9	   No es normal
 # Age	          < 2.2e-16	   No es normal
 # Pregnancies   < 2.2e-16    No es normal
 # DiabetesPedigreeFunction < 2.2e-16 No es normal
