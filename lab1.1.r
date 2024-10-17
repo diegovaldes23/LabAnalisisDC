@@ -165,42 +165,42 @@ shapiro.test(diabetes_data$DiabetesPedigreeFunction)
 # Ninguna de las variables sigue con una distribución normal.
 
 # Boxplot de Glucose por Outcome
-ggplot(diabetes_data, aes(x = Outcome, y = Glucose, fill = Outcome)) +
+ggplot(diabetes_data, aes(x = as.factor(Outcome), y = Glucose, fill = as.factor(Outcome))) +
   geom_boxplot() +
   labs(title = "Boxplot de Glucose por Outcome", x = "Outcome", y = "Glucose")
 
 # Boxplot de BMI por Outcome
-ggplot(diabetes_data, aes(x = Outcome, y = BMI, fill = Outcome)) +
+ggplot(diabetes_data, aes(x = Outcome, y = BMI, fill = as.factor(Outcome))) +
   geom_boxplot() +
   labs(title = "Boxplot de BMI por Outcome", x = "Outcome", y = "BMI")
 
 # Boxplot de BloodPressure por Outcome
-ggplot(diabetes_data, aes(x = Outcome, y = BloodPressure, fill = Outcome)) +
+ggplot(diabetes_data, aes(x = Outcome, y = BloodPressure, fill = as.factor(Outcome))) +
   geom_boxplot() +
   labs(title = "Boxplot de BloodPressure por Outcome", x = "Outcome", y = "BloodPressure")
 
 # Boxplot de SkinThickness por Outcome
-ggplot(diabetes_data, aes(x = Outcome, y = SkinThickness, fill = Outcome)) +
+ggplot(diabetes_data, aes(x = Outcome, y = SkinThickness, fill = as.factor(Outcome))) +
   geom_boxplot() +
   labs(title = "Boxplot de SkinThickness por Outcome", x = "Outcome", y = "SkinThickness")
 
 # Boxplot de Age por Outcome
-ggplot(diabetes_data, aes(x = Outcome, y = Age, fill = Outcome)) +
+ggplot(diabetes_data, aes(x = Outcome, y = Age, fill = as.factor(Outcome))) +
   geom_boxplot() +
   labs(title = "Boxplot de Age por Outcome", x = "Outcome", y = "Age")
 
 # Boxplot de Pregnancies por Outcome
-ggplot(diabetes_data, aes(x = Outcome, y = Pregnancies, fill = Outcome)) +
+ggplot(diabetes_data, aes(x = Outcome, y = Pregnancies, fill = as.factor(Outcome))) +
   geom_boxplot() +
   labs(title = "Boxplot de Pregnancies por Outcome", x = "Outcome", y = "Pregnancies")
 
 # Boxplot de DiabetesPedigreeFunction por Outcome
-ggplot(diabetes_data, aes(x = Outcome, y = DiabetesPedigreeFunction, fill = Outcome)) +
+ggplot(diabetes_data, aes(x = Outcome, y = DiabetesPedigreeFunction, fill = as.factor(Outcome))) +
   geom_boxplot() +
   labs(title = "Boxplot de DiabetesPedigreeFunction por Outcome", x = "Outcome", y = "DiabetesPedigreeFunction")
 
 # Boxplot de Insulin por Outcome
-ggplot(diabetes_data, aes(x = Outcome, y = Insulin, fill = Outcome)) +
+ggplot(diabetes_data, aes(x = Outcome, y = Insulin, fill = as.factor(Outcome))) +
   geom_boxplot() +
   labs(title = "Boxplot de Insulin por Outcome", x = "Outcome", y = "Insulin")
 
