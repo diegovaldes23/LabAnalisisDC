@@ -118,6 +118,14 @@ lines(density(diabetes_data$BMI, na.rm = TRUE), col = "cyan", lwd = 2)
 hist(diabetes_data$Age, probability = TRUE, main = "Distribución de Edad", col = "lightgray", border = "black")
 lines(density(diabetes_data$Age, na.rm = TRUE), col = "darkgray", lwd = 2)
 
+# Histograma con curva de densidad para Embarazos
+hist(diabetes_data$Pregnancies, probability = TRUE, main = "Distribución de Cantidad de Embarazos", col = "lightpink", border = "black")
+lines(density(diabetes_data$Pregnancies, na.rm = TRUE), col = "pink", lwd = 2)
+
+# Histograma con curva de densidad para Predisposición genética
+hist(diabetes_data$DiabetesPedigreeFunction, probability = TRUE, main = "Distribución de Predisposición Genética", col = "lightyellow", border = "black")
+lines(density(diabetes_data$DiabetesPedigreeFunction, na.rm = TRUE), col = "yellow", lwd = 2)
+
 # Tras analizar el histograma se realiza una prueba de normalidad a las variables, 
 # para saber con que pruebas seguir, si paramétricas o no paramétricas o métodos robustos.
 # Con shapiro-Wilk porque esta prueba es recomendable para muestras pequeñas.
