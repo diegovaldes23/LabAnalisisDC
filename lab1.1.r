@@ -194,29 +194,50 @@ ggplot(diabetes_data, aes(x = Outcome, y = Insulin, fill = as.factor(Outcome))) 
 
 # Parte 5: Prueba no paramétrica (Wilcoxon) para todas las variables numéricas
 
-# Extraer las variables numéricas del conjunto de datos
-variables_numericas <- diabetes_data %>% select_if(is.numeric)
+# Convertir Outcome a un factor
+diabetes_data$Outcome <- as.factor(diabetes_data$Outcome)
 
-# Aplicar la prueba de Wilcoxon para cada par de variables numéricas
-resultados_wilcoxon <- combn(names(variables_numericas), 2, function(vars) {
-  # Realizar la prueba de Wilcoxon entre dos variables
-  prueba <- wilcox.test(variables_numericas[[vars[1]]], variables_numericas[[vars[2]]])
-  
-  # Guardar el nombre de las variables y el valor p
-  list(
-    variable_1 = vars[1],
-    variable_2 = vars[2],
-    p_value = prueba$p.value
-  )
-}, simplify = FALSE)
+# Prueba de Mann-Whitney U para Glucose por Outcome
+prueba_glucosa <- wilcox.test(Glucose ~ Outcome, data = diabetes_data)
+cat("Prueba Mann-Whitney para Glucosa:\n")
+print(prueba_glucosa)
 
-# Mostrar los resultados
-for (res in resultados_wilcoxon) {
-  cat("Comparación entre", res$variable_1, "y", res$variable_2, "-> p-valor:", res$p_value, "\n")
-}
+# Prueba de Mann-Whitney U para BMI por Outcome
+prueba_bmi <- wilcox.test(BMI ~ Outcome, data = diabetes_data)
+cat("Prueba Mann-Whitney para BMI:\n")
+print(prueba_bmi)
 
-# Existen variables con p-valores extremadamente bajos, estas muestran diferencias
-# significativas y pueden ser consideradas posteriormente.
+# Prueba de Mann-Whitney U para BloodPressure por Outcome
+prueba_bp <- wilcox.test(BloodPressure ~ Outcome, data = diabetes_data)
+cat("Prueba Mann-Whitney para Presión Arterial:\n")
+print(prueba_bp)
+
+# Prueba de Mann-Whitney U para SkinThickness por Outcome
+prueba_skin <- wilcox.test(SkinThickness ~ Outcome, data = diabetes_data)
+cat("Prueba Mann-Whitney para Grosor de Piel:\n")
+print(prueba_skin)
+
+# Prueba de Mann-Whitney U para Insulin por Outcome
+prueba_insulin <- wilcox.test(Insulin ~ Outcome, data = diabetes_data)
+cat("Prueba Mann-Whitney para Insulina:\n")
+print(prueba_insulin)
+
+# Prueba de Mann-Whitney U para Age por Outcome
+prueba_age <- wilcox.test(Age ~ Outcome, data = diabetes_data)
+cat("Prueba Mann-Whitney para Edad:\n")
+print(prueba_age)
+
+# Prueba de Mann-Whitney U para Pregnancies por Outcome
+prueba_pregnancies <- wilcox.test(Pregnancies ~ Outcome, data = diabetes_data)
+cat("Prueba Mann-Whitney para Cantidad de Embarazos:\n")
+print(prueba_pregnancies)
+
+# Prueba de Mann-Whitney U para DiabetesPedigreeFunction por Outcome
+prueba_dpf <- wilcox.test(DiabetesPedigreeFunction ~ Outcome, data = diabetes_data)
+cat("Prueba Mann-Whitney para Predisposición Genética:\n")
+print(prueba_dpf)
+
+
 
 # Asegurarse de que Outcome es un factor
 diabetes_data$Outcome <- factor(diabetes_data$Outcome)
@@ -282,9 +303,6 @@ cat("Especificidad:", round(especificidad, 4), "\n")
 # Calcular la precisión del modelo
 precision <- mean(predicciones_binarias == diabetes_data$Outcome)
 print(paste("Precisión del modelo:", round(precision, 4)))
-
-# También se pueden calcular métricas como Sensibilidad y Especificidad.
-
 
 # Calcular la curva ROC y AUC
 roc_obj <- roc(diabetes_data$Outcome, prob_predicciones)
