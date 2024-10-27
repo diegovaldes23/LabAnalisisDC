@@ -64,6 +64,14 @@ str(diabetes_data)
 # Resumen estadístico básico de todas las variables
 summary(diabetes_data)
 
+# Calcular la varianza de las variables numéricas
+varianza <- diabetes_data %>%
+  summarise(across(where(is.numeric), var, na.rm = TRUE))
+
+# Mostrar la varianza
+print("Varianza de las variables:")
+print(varianza)
+
 # Calcular la matriz de correlación
 correlation_matrix <- cor(diabetes_data %>% select_if(is.numeric))
 
