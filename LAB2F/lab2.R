@@ -1,10 +1,9 @@
-
-# Cargar los paquetes
-library(clustMixType)
+# Cargar los paquetes necesarios
 library(cluster)
 library(factoextra)
-# Parte 1
+library(purrr)
 
+# Parte 1: Cargar los datos
 # Obtener la ruta del directorio de trabajo actual
 current_dir <- getwd()
 
@@ -23,14 +22,7 @@ if (length(file_path) > 0) {
 # Mostrar las primeras filas del conjunto de datos
 head(diabetes_data)
 
-
 # Parte 2: Limpieza de datos
-# Al analizar el resumen estadístico se destaca que los valores de 0 en las variables como Glucose,
-# BloodPressure, SkinThickness, Insulin, y BMI probablemente representan datos faltantes. 
-# Esto es importante para limpiar los datos antes de realizar cualquier análisis inferencial, ya que, se puede malinterpretar 
-# el análisis si se colocan estos datos.
-# Por lo tanto, reemplazar valores de 0 por NA en las variables específicas.
-
 # Reemplazar los ceros por NA en las columnas donde no tiene sentido que haya ceros
 diabetes_data$Glucose[diabetes_data$Glucose == 0] <- NA
 diabetes_data$BloodPressure[diabetes_data$BloodPressure == 0] <- NA
@@ -39,6 +31,7 @@ diabetes_data$Insulin[diabetes_data$Insulin == 0] <- NA
 diabetes_data$BMI[diabetes_data$BMI == 0] <- NA
 diabetes_data$DiabetesPedigreeFunction[diabetes_data$DiabetesPedigreeFunction == 0] <- NA
 
+# Imputar los valores faltantes con la media
 diabetes_data$Glucose[is.na(diabetes_data$Glucose)] <- mean(diabetes_data$Glucose, na.rm = TRUE)
 diabetes_data$BloodPressure[is.na(diabetes_data$BloodPressure)] <- mean(diabetes_data$BloodPressure, na.rm = TRUE)
 diabetes_data$SkinThickness[is.na(diabetes_data$SkinThickness)] <- mean(diabetes_data$SkinThickness, na.rm = TRUE)
@@ -46,10 +39,79 @@ diabetes_data$Insulin[is.na(diabetes_data$Insulin)] <- mean(diabetes_data$Insuli
 diabetes_data$BMI[is.na(diabetes_data$BMI)] <- mean(diabetes_data$BMI, na.rm = TRUE)
 diabetes_data$DiabetesPedigreeFunction[is.na(diabetes_data$DiabetesPedigreeFunction)] <- mean(diabetes_data$DiabetesPedigreeFunction, na.rm = TRUE)
 
-head(diabetes_data)
-
-# Estructura de los datos
+# Mostrar estructura de los datos
 str(diabetes_data)
 
 # Resumen estadístico básico de todas las variables
 summary(diabetes_data)
+
+# Parte 3: Clustering con K-Medoids
+# Escalar los datos antes de aplicar el algoritmo
+scaled_data <- scale(diabetes_data)
+
+# ------------------------------------
+# Método 1: Elbow Method (Método del Codo)
+# ------------------------------------
+wss <- function(k) {
+  pam_fit <- pam(scaled_data, k = k)
+  return(sum(pam_fit$clustering))
+}
+
+# Valores de k a probar
+k_values <- 1:10
+
+# Calcular la inercia para cada valor de k
+wss_values <- map_dbl(k_values, wss)
+
+# Graficar el método del codo
+plot(k_values, wss_values,
+     type = "b", pch = 19, frame = FALSE,
+     xlab = "Número de Clusters K",
+     ylab = "Inercia intra-cluster")
+
+# ------------------------------------
+# Método 2: Índice de la Silueta
+silhouette_score <- function(k) {
+  if (k == 1) {
+    return(NA)  # No se puede calcular el índice de silueta con un solo cluster
+  }
+  pam_fit <- pam(scaled_data, k = k)
+  silhouette <- silhouette(pam_fit$clustering, dist(scaled_data))
+  return(mean(silhouette[, 3]))  # Retorna el promedio del índice de silueta
+}
+
+# Calcular el índice de silueta para cada valor de k
+sil_values <- map_dbl(k_values, silhouette_score)
+
+# Eliminar valores NA para la visualización
+k_values_valid <- k_values[!is.na(sil_values)]
+sil_values_valid <- sil_values[!is.na(sil_values)]
+
+# Graficar el índice de la silueta
+plot(k_values_valid, sil_values_valid,
+     type = "b", pch = 19, frame = FALSE,
+     xlab = "Número de Clusters K",
+     ylab = "Índice de la Silueta")
+
+# ------------------------------------
+# Método 3: Gap Statistic (Criterio de la Brecha)
+# ------------------------------------
+gap_stat <- clusGap(scaled_data, FUN = pam, K.max = 10, B = 50)
+
+# Graficar los resultados del Gap Statistic
+fviz_gap_stat(gap_stat)
+
+# ------------------------------------
+# Definir el número de clusters (puedes ajustar según los análisis previos)
+num_clusters <- 3  # Cambia este valor según los resultados obtenidos de los métodos anteriores
+
+# Aplicar K-Medoids utilizando la función 'pam'
+pam_fit <- pam(scaled_data, k = num_clusters)
+
+# Parte 4: Visualización de los clusters
+fviz_cluster(pam_fit, geom = "point", ellipse.type = "norm")
+
+# Mostrar los resultados del clustering
+print(pam_fit)
+
+
