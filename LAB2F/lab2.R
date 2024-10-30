@@ -31,7 +31,8 @@ diabetes_data$Insulin[diabetes_data$Insulin == 0] <- NA
 diabetes_data$BMI[diabetes_data$BMI == 0] <- NA
 diabetes_data$DiabetesPedigreeFunction[diabetes_data$DiabetesPedigreeFunction == 0] <- NA
 
-# Imputar los valores faltantes con la media
+# Parte 3: Imputación de valores faltantes
+# Imputar los valores NA con la media de cada columna
 diabetes_data$Glucose[is.na(diabetes_data$Glucose)] <- mean(diabetes_data$Glucose, na.rm = TRUE)
 diabetes_data$BloodPressure[is.na(diabetes_data$BloodPressure)] <- mean(diabetes_data$BloodPressure, na.rm = TRUE)
 diabetes_data$SkinThickness[is.na(diabetes_data$SkinThickness)] <- mean(diabetes_data$SkinThickness, na.rm = TRUE)
@@ -45,16 +46,19 @@ str(diabetes_data)
 # Resumen estadístico básico de todas las variables
 summary(diabetes_data)
 
-# Parte 3: Clustering con K-Medoids
-# Escalar los datos antes de aplicar el algoritmo
-scaled_data <- scale(diabetes_data)
+# Parte 4: Normalización de los datos
+# Normalizar los datos numéricos (todas las variables numéricas tendrán media = 0 y desviación estándar = 1)
+diabetes_data_scaled <- scale(diabetes_data)
+
+# Verificar los datos normalizados
+head(diabetes_data_scaled)
 
 # ------------------------------------
 # Método 1: Elbow Method (Método del Codo)
 # ------------------------------------
 wss <- function(k) {
-  pam_fit <- pam(scaled_data, k = k)
-  return(sum(pam_fit$clustering))
+  pam_fit <- pam(diabetes_data_scaled, k = k)
+  return(sum(pam_fit$objective))  # Usa la suma de distancias intra-cluster
 }
 
 # Valores de k a probar
@@ -75,8 +79,8 @@ silhouette_score <- function(k) {
   if (k == 1) {
     return(NA)  # No se puede calcular el índice de silueta con un solo cluster
   }
-  pam_fit <- pam(scaled_data, k = k)
-  silhouette <- silhouette(pam_fit$clustering, dist(scaled_data))
+  pam_fit <- pam(diabetes_data_scaled, k = k)
+  silhouette <- silhouette(pam_fit$clustering, dist(diabetes_data_scaled))
   return(mean(silhouette[, 3]))  # Retorna el promedio del índice de silueta
 }
 
@@ -96,22 +100,21 @@ plot(k_values_valid, sil_values_valid,
 # ------------------------------------
 # Método 3: Gap Statistic (Criterio de la Brecha)
 # ------------------------------------
-gap_stat <- clusGap(scaled_data, FUN = pam, K.max = 10, B = 50)
+gap_stat <- clusGap(diabetes_data_scaled, FUN = pam, K.max = 10, B = 50)
 
 # Graficar los resultados del Gap Statistic
 fviz_gap_stat(gap_stat)
 
 # ------------------------------------
 # Definir el número de clusters (puedes ajustar según los análisis previos)
-num_clusters <- 3  # Cambia este valor según los resultados obtenidos de los métodos anteriores
+num_clusters <- 4# Cambia este valor según los resultados obtenidos de los métodos anteriores
 
 # Aplicar K-Medoids utilizando la función 'pam'
-pam_fit <- pam(scaled_data, k = num_clusters)
+pam_fit <- pam(diabetes_data_scaled, k = num_clusters)
 
 # Parte 4: Visualización de los clusters
 fviz_cluster(pam_fit, geom = "point", ellipse.type = "norm")
 
 # Mostrar los resultados del clustering
 print(pam_fit)
-
 
