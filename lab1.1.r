@@ -319,7 +319,7 @@ ggplot(confusion_data, aes(x = Real, y = Freq, fill = Predicho)) +
   labs(title = "Matriz de Confusión - Modelo Completo", x = "Valor Real", y = "Frecuencia")
 
 # Aplicar el nuevo umbral óptimo
-nuevo_umbral <- 0.2853508
+nuevo_umbral <- 0.3401293
 
 # Convertir probabilidades a predicciones binarias usando el nuevo umbral
 predicciones_binarias_optimo <- ifelse(prob_predicciones > nuevo_umbral, 1, 0)
@@ -331,7 +331,7 @@ matriz_confusion_optimo <- table(Predicho = predicciones_binarias_optimo, Real =
 roc_obj_optimo <- roc(diabetes_data$Outcome, prob_predicciones)
 
 # Graficar la curva ROC para el modelo completo con el nuevo umbral
-plot(roc_obj_optimo, main = "Curva ROC - Modelo Completo (Umbral Óptimo 0.285)", col = "blue", lwd = 2)
+plot(roc_obj_optimo, main = "Curva ROC - Modelo Completo (Umbral Óptimo 0.3401)", col = "blue", lwd = 2)
 auc_optimo <- auc(roc_obj_optimo)
 cat("Área bajo la curva (AUC) con el umbral óptimo:", auc_optimo, "\n")
 
