@@ -1,9 +1,12 @@
 # Carga de librerías
 library(arules)
 library(arulesViz)
+library(ggplot2)
 
 # Obtener la ruta del directorio de trabajo actual
 current_dir <- getwd()
+
+setwd("~/Desktop/LabAnalisisDC")
 
 # Buscar el archivo "diabetes.csv" en el directorio actual y subdirectorios
 file_name <- "diabetes.csv"
@@ -82,6 +85,87 @@ summary(diabetes_data)
 # Verificar estructura después del preprocesamiento
 str(diabetes_data)
 
+# Glucosa (Glucose)
+ggplot(diabetes_data, aes(x = Glucose)) + 
+  geom_bar(fill = "darkblue", color = "black") + 
+  labs(title = "Discretización de los niveles de glucosa", x = "Glucosa (Categorías)", y = "Frecuencia") +
+  theme_minimal()
+
+# Guardar el gráfico de glucosa
+ggsave("discretizacion_glucosa.png")
+
+# BMI (Índice de Masa Corporal)
+ggplot(diabetes_data, aes(x = BMI)) + 
+  geom_bar(fill = "darkblue", color = "black") + 
+  labs(title = "Discretización del Índice de Masa Corporal (BMI)", x = "BMI (Categorías)", y = "Frecuencia") +
+  theme_minimal()
+
+# Guardar el gráfico de BMI
+ggsave("discretizacion_BMI.png")
+
+# Insulina (Insulin)
+ggplot(diabetes_data, aes(x = Insulin)) + 
+  geom_bar(fill = "darkblue", color = "black") + 
+  labs(title = "Discretización de los niveles de insulina", x = "Insulina (Categorías)", y = "Frecuencia") +
+  theme_minimal()
+
+# Guardar el gráfico de insulina
+ggsave("discretizacion_insulina.png")
+
+# Presión Arterial (BloodPressure)
+ggplot(diabetes_data, aes(x = BloodPressure)) + 
+  geom_bar(fill = "darkblue", color = "black") + 
+  labs(title = "Discretización de la presión arterial", x = "Presión Arterial (Categorías)", y = "Frecuencia") +
+  theme_minimal()
+
+# Guardar el gráfico de presión arterial
+ggsave("discretizacion_presion.png")
+
+# Número de embarazos (Pregnancies)
+ggplot(diabetes_data, aes(x = Pregnancies)) + 
+  geom_bar(fill = "darkblue", color = "black") + 
+  labs(title = "Discretización del número de embarazos", x = "Embarazos (Categorías)", y = "Frecuencia") +
+  theme_minimal()
+
+# Guardar el gráfico de embarazos
+ggsave("discretizacion_embarazos.png")
+
+# Grosor del pliegue cutáneo (SkinThickness)
+ggplot(diabetes_data, aes(x = SkinThickness)) + 
+  geom_bar(fill = "darkblue", color = "black") + 
+  labs(title = "Discretización del grosor del pliegue cutáneo", x = "Grosor del pliegue (Categorías)", y = "Frecuencia") +
+  theme_minimal()
+
+# Guardar el gráfico de grosor del pliegue cutáneo
+ggsave("discretizacion_skinthickness.png")
+
+# Función de Pedigrí de Diabetes (DiabetesPedigreeFunction)
+ggplot(diabetes_data, aes(x = DiabetesPedigreeFunction)) + 
+  geom_bar(fill = "darkblue", color = "black") + 
+  labs(title = "Discretización de la función de pedigrí de diabetes", x = "Pedigrí de Diabetes (Categorías)", y = "Frecuencia") +
+  theme_minimal()
+
+# Guardar el gráfico de pedigrí de diabetes
+ggsave("discretizacion_pedigree.png")
+
+# Edad (Age)
+ggplot(diabetes_data, aes(x = Age)) + 
+  geom_bar(fill = "darkblue", color = "black") + 
+  labs(title = "Discretización de la edad", x = "Edad (Categorías)", y = "Frecuencia") +
+  theme_minimal()
+
+# Guardar el gráfico de edad
+ggsave("discretizacion_edad.png")
+
+# Diagnóstico de diabetes (Outcome)
+ggplot(diabetes_data, aes(x = Outcome)) + 
+  geom_bar(fill = "darkblue", color = "black") + 
+  labs(title = "Discretización de Outcome", x = "Outcome (Categorías)", y = "Frecuencia") +
+  theme_minimal()
+
+# Guardar el gráfico de edad
+ggsave("discretizacion_outcome.png")
+
 # TRANSFORMACIÓN EN FORMATO TRANSACCIONAL
 transacciones <- as(diabetes_data, "transactions")
 
@@ -106,3 +190,4 @@ reglas_filtradas <- head(sort(reglas_significativas, by = "lift"), 50)
 
 # Visualización en forma de red
 plot(reglas_filtradas, method = "graph")
+
