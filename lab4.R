@@ -1,6 +1,9 @@
 #Importar librerías
 library(C50)
 library(ggplot2)
+library(caret)
+library(rpart.plot)
+library(party)
 
 # Obtener la ruta del directorio de trabajo actual
 current_dir <- getwd()
@@ -101,12 +104,14 @@ ggplot(diabetes_data, aes(x = Outcome)) +
 # Estadísticas descriptivas de las variables
 summary(diabetes_data)
 
-# Análisis de correlación entre variables numéricas
-corr_matrix <- cor(diabetes_data[, sapply(diabetes_data, is.numeric)])
+# Predicción en el conjunto de prueba
+predicciones <- predict(modelo_c50, test_data)
 
-# Visualización de la matriz de correlación
-corrplot(corr_matrix, method = "color", type = "upper", tl.col = "black", tl.srt = 45)
+# Crear una matriz de confusión
+confusion_matrix <- confusionMatrix(predicciones, test_data$Outcome)
 
+# Mostrar resultados de la matriz de confusión
+print(confusion_matrix)
 
 # Dividir los datos en conjunto de entrenamiento y prueba
 set.seed(42) # Para reproducibilidad
@@ -128,7 +133,7 @@ table(train_data$Outcome)
 table(test_data$Outcome)
 
 # Entrenamiento del modelo con C5.0
-modelo_c50 <- C5.0(Outcome ~ ., data = train_data, trials = 10, rules = TRUE)
+modelo_c50 <- C5.0(Outcome ~ ., data = train_data, trials = 10, rules = TRUE, minCases = 5)
 
 # Resumen del modelo
 summary(modelo_c50)
@@ -148,8 +153,11 @@ modelo_c50_podado <- C5.0(Outcome ~ ., data = train_data, trials = 10, rules = T
 # Resumen del modelo podado
 summary(modelo_c50_podado)
 
-tree_model <- as.party.C5.0(modelo_c50)
-plot.default(tree_model)
+# Conversión del modelo
+modelo_ctree <- ctree(Outcome ~ ., data = train_data)
+
+# Graficar modelo
+plot(modelo_ctree)
 
 # Extraer las reglas generadas por el modelo
 reglas <- modelo_c50_podado$rules
