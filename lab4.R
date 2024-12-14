@@ -4,6 +4,9 @@ library(ggplot2)
 library(caret)
 library(rpart.plot)
 library(party)
+library(reshape2)
+library(dplyr)
+library(scales)
 
 # Obtener la ruta del directorio de trabajo actual
 current_dir <- getwd()
@@ -148,16 +151,27 @@ confusion_matrix <- confusionMatrix(predicciones, test_data$Outcome)
 print(confusion_matrix)
 
 # Poda del modelo C5.0
-modelo_c50_podado <- C5.0(Outcome ~ ., data = train_data, trials = 10, rules = TRUE)
+modelo_c50_podado <- C5.0(Outcome ~ ., data = train_data, trials = 5, rules = TRUE, minCases = 10)
 
 # Resumen del modelo podado
 summary(modelo_c50_podado)
 
-# Conversión del modelo
+# Conversión de los modelos
 modelo_ctree <- ctree(Outcome ~ ., data = train_data)
+modelo_ctree_podado <- ctree(
+  Outcome ~ ., 
+  data = train_data,
+  controls = ctree_control(
+    minbucket = 10, # Mínimo de observaciones por hoja
+    minsplit = 20,  # Mínimo de observaciones para realizar una división
+    maxdepth = 5    # Profundidad máxima del árbol (ajustar según sea necesario)
+  )
+)
 
-# Graficar modelo
+# Graficar modelos
 plot(modelo_ctree)
+plot(modelo_ctree_podado)
+
 
 # Extraer las reglas generadas por el modelo
 reglas <- modelo_c50_podado$rules
@@ -175,6 +189,12 @@ f1_score_original <- 2 * (precision_original * recall_original) / (precision_ori
 precision_podado <- confusionMatrix(predict(modelo_c50_podado, test_data), test_data$Outcome)$byClass['Pos Pred Value']
 recall_podado <- confusionMatrix(predict(modelo_c50_podado, test_data), test_data$Outcome)$byClass['Sensitivity']
 f1_score_podado <- 2 * (precision_podado * recall_podado) / (precision_podado + recall_podado)
+
+# Calcular Accuracy para el modelo original
+accuracy_original <- confusionMatrix(predict(modelo_c50, test_data), test_data$Outcome)$overall['Accuracy']
+
+# Calcular Accuracy para el modelo podado
+accuracy_podado <- confusionMatrix(predict(modelo_c50_podado, test_data), test_data$Outcome)$overall['Accuracy']
 
 # Crear un data frame con las métricas
 metrics <- data.frame(
