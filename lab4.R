@@ -107,14 +107,23 @@ ggplot(diabetes_data, aes(x = Outcome)) +
 # Estadísticas descriptivas de las variables
 summary(diabetes_data)
 
-# Predicción en el conjunto de prueba
-predicciones <- predict(modelo_c50, test_data)
+# Selección de columnas numéricas
+variables_numericas <- diabetes_data[sapply(diabetes_data, is.numeric)]
 
-# Crear una matriz de confusión
-confusion_matrix <- confusionMatrix(predicciones, test_data$Outcome)
+# Calcular la matriz de correlación
+matriz_correlacion <- cor(variables_numericas, use = "complete.obs")
 
-# Mostrar resultados de la matriz de confusión
-print(confusion_matrix)
+# Ver la matriz de correlación
+print(matriz_correlacion)
+
+# Graficar matriz de correlacion
+correlacion_larga <- melt(matriz_correlacion)
+ggplot(data = correlacion_larga, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1, 1), name = "Correlación") +
+  theme_minimal() +
+  labs(title = "Matriz de Correlación", x = "", y = "") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Dividir los datos en conjunto de entrenamiento y prueba
 set.seed(42) # Para reproducibilidad
@@ -135,51 +144,71 @@ print(test_data[false_negative, ])
 table(train_data$Outcome) 
 table(test_data$Outcome)
 
-# Entrenamiento del modelo con C5.0
-modelo_c50 <- C5.0(Outcome ~ ., data = train_data, trials = 10, rules = TRUE, minCases = 5)
+# Grid search de hiperparámetros con métricas adicionales
+mejores_resultados <- NULL
+valores_cf <- c(0.05, 0.1, 0.15, 0.25)
+valores_minCases <- c(5, 10, 15)
+valores_trials <- c(5, 10, 20)
 
-# Resumen del modelo
+for (cf in valores_cf) {
+  for (min_cases in valores_minCases) {
+    for (trials in valores_trials) {
+      # Entrenar el modelo con la combinación actual
+      modelo <- C5.0(Outcome ~ ., data = train_data, 
+                     control = C5.0Control(CF = cf, minCases = min_cases), 
+                     trials = trials)
+      
+      # Evaluar en el conjunto de prueba
+      predicciones <- predict(modelo, test_data)
+      matriz_confusion <- confusionMatrix(predicciones, test_data$Outcome)
+      
+      # Calcular métricas adicionales
+      accuracy <- matriz_confusion$overall['Accuracy']
+      sensitivity <- matriz_confusion$byClass['Sensitivity']
+      specificity <- matriz_confusion$byClass['Specificity']
+      precision <- matriz_confusion$byClass['Pos Pred Value']
+      f1_score <- (2 * precision * sensitivity) / (precision + sensitivity)
+      
+      # Guardar los resultados
+      mejores_resultados <- rbind(
+        mejores_resultados,
+        data.frame(
+          CF = cf, 
+          minCases = min_cases, 
+          Trials = trials, 
+          Accuracy = accuracy, 
+          Sensitivity = sensitivity, 
+          Specificity = specificity, 
+          Precision = precision, 
+          F1_Score = f1_score
+        )
+      )
+    }
+  }
+}
+
+# Ordenar los resultados por la métrica deseada (ej., F1_Score o Accuracy)
+mejores_resultados <- mejores_resultados[order(-mejores_resultados$Accuracy, -mejores_resultados$F1_Score), ]
+
+# Mostrar las mejores combinaciones
+print(mejores_resultados)
+
+modelo_c50 <- C5.0(Outcome ~ ., data = train_data, 
+               control = C5.0Control(CF = 0.10, minCases = 15), 
+               trials = 5)
+
+# Gráfico del mejor modelo
+plot(modelo_c50)
+
+# Resumen del mejor modelo
 summary(modelo_c50)
 
-# Predicción en el conjunto de prueba
-predicciones <- predict(modelo_c50, test_data)
+# Predicciones con datos de pruebas
+predicciones <- predict(modelo, test_data)
+matriz_confusion <- confusionMatrix(predicciones, test_data$Outcome)
 
-# Crear una matriz de confusión
-confusion_matrix <- confusionMatrix(predicciones, test_data$Outcome)
-
-# Mostrar resultados de la matriz de confusión
-print(confusion_matrix)
-
-# Poda del modelo C5.0
-modelo_c50_podado <- C5.0(Outcome ~ ., data = train_data, trials = 5, rules = TRUE, minCases = 10)
-
-# Resumen del modelo podado
-summary(modelo_c50_podado)
-
-# Conversión de los modelos
-modelo_ctree <- ctree(Outcome ~ ., data = train_data)
-modelo_ctree_podado <- ctree(
-  Outcome ~ ., 
-  data = train_data,
-  controls = ctree_control(
-    minbucket = 10, # Mínimo de observaciones por hoja
-    minsplit = 20,  # Mínimo de observaciones para realizar una división
-    maxdepth = 5    # Profundidad máxima del árbol (ajustar según sea necesario)
-  )
-)
-
-# Graficar modelos
-plot(modelo_ctree)
-plot(modelo_ctree_podado)
-
-
-# Extraer las reglas generadas por el modelo
-reglas <- modelo_c50_podado$rules
-print(reglas)
-
-# Importancia de las variables
-importancia <- C5imp(modelo_c50_podado)
-print(importancia)
+# Matriz de confusión
+print(matriz_confusion)
 
 # Comparación de modelo original y poda
 precision_original <- confusionMatrix(predict(modelo_c50, test_data), test_data$Outcome)$byClass['Pos Pred Value']
@@ -209,6 +238,8 @@ metrics <- data.frame(
 metrics_long <- reshape(metrics, varying = c("Accuracy", "Precision", "Recall", "F1_Score"),
                         v.names = "Valor", timevar = "Métrica", times = c("Accuracy", "Precision", "Recall", "F1_Score"),
                         direction = "long")
+
+print(metrics_long)
 
 # Gráfico de comparación de métricas
 ggplot(metrics_long, aes(x = Modelo, y = Valor, fill = Métrica)) +
