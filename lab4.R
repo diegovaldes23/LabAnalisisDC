@@ -7,6 +7,7 @@ library(party)
 library(reshape2)
 library(dplyr)
 library(scales)
+library(pROC)
 
 # Obtener la ruta del directorio de trabajo actual
 current_dir <- getwd()
@@ -132,14 +133,6 @@ indices <- createDataPartition(diabetes_data$Outcome, p = 0.7, list = FALSE)
 train_data <- diabetes_data[indices, ] # EXPLICAR POR QUÉ SE ESCOGIÓ EL 70% DE LOS DATOS PARA EL ENTRENAMIENTO
 test_data <- diabetes_data[-indices, ]
 
-# Falsos positivos y negativos
-false_positive <- which(predicciones == 1 & test_data$Outcome == 0)
-false_negative <- which(predicciones == 0 & test_data$Outcome == 1)
-
-# Mostrar los ejemplos mal clasificados
-print(test_data[false_positive, ])
-print(test_data[false_negative, ])
-
 # Proporción de clases en el conjunto de entrenamiento y prueba
 table(train_data$Outcome) 
 table(test_data$Outcome)
@@ -204,56 +197,27 @@ plot(modelo_c50)
 summary(modelo_c50)
 
 # Predicciones con datos de pruebas
-predicciones <- predict(modelo, test_data)
+predicciones <- predict(modelo_c50, test_data)
 matriz_confusion <- confusionMatrix(predicciones, test_data$Outcome)
 
 # Matriz de confusión
 print(matriz_confusion)
 
-# Comparación de modelo original y poda
-precision_original <- confusionMatrix(predict(modelo_c50, test_data), test_data$Outcome)$byClass['Pos Pred Value']
-recall_original <- confusionMatrix(predict(modelo_c50, test_data), test_data$Outcome)$byClass['Sensitivity']
-f1_score_original <- 2 * (precision_original * recall_original) / (precision_original + recall_original)
+# Calcular la probabilidad de predicción
+probabilidades <- predict(modelo_c50, test_data, type = "prob")
 
-precision_podado <- confusionMatrix(predict(modelo_c50_podado, test_data), test_data$Outcome)$byClass['Pos Pred Value']
-recall_podado <- confusionMatrix(predict(modelo_c50_podado, test_data), test_data$Outcome)$byClass['Sensitivity']
-f1_score_podado <- 2 * (precision_podado * recall_podado) / (precision_podado + recall_podado)
-
-# Calcular Accuracy para el modelo original
-accuracy_original <- confusionMatrix(predict(modelo_c50, test_data), test_data$Outcome)$overall['Accuracy']
-
-# Calcular Accuracy para el modelo podado
-accuracy_podado <- confusionMatrix(predict(modelo_c50_podado, test_data), test_data$Outcome)$overall['Accuracy']
-
-# Crear un data frame con las métricas
-metrics <- data.frame(
-  Modelo = c("Original", "Podado"),
-  Accuracy = c(accuracy_original, accuracy_podado),
-  Precision = c(precision_original, precision_podado),
-  Recall = c(recall_original, recall_podado),
-  F1_Score = c(f1_score_original, f1_score_podado)
-)
-
-# Comparar las métricas con gráficos
-metrics_long <- reshape(metrics, varying = c("Accuracy", "Precision", "Recall", "F1_Score"),
-                        v.names = "Valor", timevar = "Métrica", times = c("Accuracy", "Precision", "Recall", "F1_Score"),
-                        direction = "long")
-
-print(metrics_long)
-
-# Gráfico de comparación de métricas
-ggplot(metrics_long, aes(x = Modelo, y = Valor, fill = Métrica)) +
-  geom_bar(stat = "identity", position = "dodge", color = "black") +
-  labs(title = "Comparación de Métricas entre el Modelo Original y Podado", x = "Modelo", y = "Valor") +
-  facet_wrap(~Métrica, scales = "free_y") +
-  theme_minimal()
+# Crear la curva ROC
+roc_curve <- roc(test_data$Outcome, probabilidades[, 2], levels = rev(levels(test_data$Outcome)))
+plot(roc_curve, col = "blue", lwd = 2, main = "Curva ROC del Modelo C5.0")
+auc_value <- auc(roc_curve)
+print(paste("Área Bajo la Curva (AUC):", round(auc_value, 4)))
 
 # Crear gráfico de importancia de las variables
-importancia <- C5imp(modelo_c50_podado)
+importancia <- C5imp(modelo_c50)
 importance_df <- data.frame(Variable = rownames(importancia), Importancia = importancia[, 1])
 
 ggplot(importance_df, aes(x = reorder(Variable, Importancia), y = Importancia)) +
-  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  geom_bar(stat = "identity", fill = "darkblue", color = "black") +
   coord_flip() +
   labs(title = "Importancia de las variables", x = "Variable", y = "Importancia")
 
