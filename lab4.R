@@ -126,6 +126,30 @@ ggplot(data = correlacion_larga, aes(x = Var1, y = Var2, fill = value)) +
   labs(title = "Matriz de Correlación", x = "", y = "") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+# Discretización de las variables (CON FUENTES)
+diabetes_data$Glucose <- cut(diabetes_data$Glucose, breaks = c(-Inf, 140, Inf), 
+                             labels = c("Normal", "Alto"))
+diabetes_data$BMI <- cut(diabetes_data$BMI, breaks = c(-Inf, 18.5, 25, 30, Inf), 
+                         labels = c("Bajo", "Normal", "Sobrepeso", "Obesidad"))
+diabetes_data$Insulin <- cut(diabetes_data$Insulin, breaks = c(-Inf, 25, 85, Inf),
+                             labels = c("Normal", "Alto", "Muy alto"))
+diabetes_data$BloodPressure <- cut(diabetes_data$BloodPressure, breaks = c(-Inf, 80, 90, Inf), 
+                                   labels = c("Normal", "Alta", "Muy alta"))
+diabetes_data$Pregnancies <- cut(diabetes_data$Pregnancies, breaks = c(-Inf, 2, 5, Inf), 
+                                 labels = c("Pocos", "Moderados", "Muchos"))
+###################################################################################
+# FALTA JUSTIFICAR ACÁ POR QUÉ SE ESCOGIERON LOS VALORES CON CITAS DE RESVISTAS IMPORTANTES
+
+diabetes_data$SkinThickness <- cut(diabetes_data$SkinThickness, breaks = c(-Inf, 20, 30, Inf), 
+                                   labels = c("Bajo", "Medio", "Alto"))
+diabetes_data$DiabetesPedigreeFunction <- cut(diabetes_data$DiabetesPedigreeFunction, breaks = c(-Inf, 0.2, 0.5, Inf), 
+                                              labels = c("Baja", "Media", "Alta"))
+diabetes_data$Age <- cut(diabetes_data$Age, breaks = c(-Inf, 35, 50, Inf), 
+                         labels = c("Joven", "Mediana", "Mayor"))
+diabetes_data$Outcome <- as.factor(diabetes_data$Outcome)
+
+summary(diabetes_data)
+
 # Dividir los datos en conjunto de entrenamiento y prueba
 set.seed(42) # Para reproducibilidad
 
@@ -186,12 +210,28 @@ mejores_resultados <- mejores_resultados[order(-mejores_resultados$Accuracy, -me
 # Mostrar las mejores combinaciones
 print(mejores_resultados)
 
+# Ejemplo de ponderación de métricas
+ponderacion <- c(Sensitivity = 0.4, F1_Score = 0.3, Precision = 0.15, Specificity = 0.1, Accuracy = 0.05)
+
+# Añadir una columna con la métrica ponderada
+mejores_resultados$Metrica_Ponderada <- with(mejores_resultados, 
+                                             (Sensitivity * ponderacion["Sensitivity"]) + 
+                                               (F1_Score * ponderacion["F1_Score"]) + 
+                                               (Precision * ponderacion["Precision"]) + 
+                                               (Specificity * ponderacion["Specificity"]) + 
+                                               (Accuracy * ponderacion["Accuracy"]))
+
+# Ordenar los resultados por la métrica ponderada
+mejores_resultados <- mejores_resultados[order(-mejores_resultados$Metrica_Ponderada), ]
+print(mejores_resultados)
+
+
 modelo_c50 <- C5.0(Outcome ~ ., data = train_data, 
-               control = C5.0Control(CF = 0.10, minCases = 15), 
+               control = C5.0Control(CF = 0.05, minCases = 5), 
                trials = 5)
 
 # Gráfico del mejor modelo
-plot(modelo_c50)
+plot(modelo_c50, trial = 4)
 
 # Resumen del mejor modelo
 summary(modelo_c50)

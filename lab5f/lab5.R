@@ -2,6 +2,7 @@
 library(signal)  # Para procesamiento de señales
 library(TSA)     # Para análisis de series temporales
 library(oce)     # Para transformadas espectrales y gráficos avanzados
+library(zoo)     # Para análisis de series temporales
 
 # Configurar ruta para archivos
 current_dir <- getwd()
@@ -33,6 +34,13 @@ cc_hiper <- ccf(sujeto_hiper$PAM, sujeto_hiper$VFSC, plot = FALSE)
 lag_max_hiper <- cc_hiper$lag[which.max(cc_hiper$acf)]
 cat("Lag máximo para hipercápnico:", lag_max_hiper, "\n")
 
+# Coeficiente de correlación máximo
+correlacion_max_normo <- max(cc_normo$acf)
+cat("Coeficiente de correlación máximo para normocápnico:", correlacion_max_normo, "\n")
+
+correlacion_max_hiper <- max(cc_hiper$acf)
+cat("Coeficiente de correlación máximo para hipercápnico:", correlacion_max_hiper, "\n")
+
 # 2. Calcular la autocorrelación de la señal PAM
 # Autocorrelación de PAM para normocápnico
 acf(sujeto_normo$PAM, main = "Autocorrelación de PAM (Normocápnico)", ylab = "Autocorrelación", xlab = "Lag")
@@ -46,6 +54,55 @@ spec.pgram(cbind(sujeto_normo$PAM, sujeto_normo$VFSC), taper = 0.1, plot = TRUE,
 
 # Transformada de Fourier para hipercápnico
 spec.pgram(cbind(sujeto_hiper$PAM, sujeto_hiper$VFSC), taper = 0.1, plot = TRUE, main = "Transformada de Fourier (Hipercápnico)")
+
+sujeto_normo$PAM_smooth <- rollmean(sujeto_normo$PAM, k = 10, fill = NA)
+sujeto_normo$VFSC_smooth <- rollmean(sujeto_normo$VFSC, k = 10, fill = NA)
+
+sujeto_hiper$PAM_smooth <- rollmean(sujeto_hiper$PAM, k = 10, fill = NA)
+sujeto_hiper$VFSC_smooth <- rollmean(sujeto_hiper$VFSC, k = 10, fill = NA)
+
+# Graficar suavizado para normocápnico
+plot(sujeto_normo$PAM_smooth, type = "l", col = "blue", main = "Señales PAM y VFSC Suavizadas (Normocápnico)")
+lines(sujeto_normo$VFSC_smooth, col = "red")
+legend("topright", legend = c("PAM", "VFSC"), col = c("blue", "red"), lty = 1)
+
+# Graficar suavizado para hipercápnico
+plot(sujeto_hiper$PAM_smooth, type = "l", col = "blue", main = "Señales PAM y VFSC Suavizadas (Hipercápnico)")
+lines(sujeto_hiper$VFSC_smooth, col = "red")
+legend("topright", legend = c("PAM", "VFSC"), col = c("blue", "red"), lty = 1)
+
+# Espectro normalizado para normocápnico
+spectrum_normo <- spectrum(sujeto_normo$PAM, plot = FALSE)
+energy_low_freq_normo <- sum(spectrum_normo$spec[spectrum_normo$freq <= 0.1])
+energy_high_freq_normo <- sum(spectrum_normo$spec[spectrum_normo$freq > 0.1])
+cat("Energía en frecuencias bajas (normocápnico):", energy_low_freq_normo, "\n")
+cat("Energía en frecuencias altas (normocápnico):", energy_high_freq_normo, "\n")
+
+# Espectro normalizado para hipercápnico
+spectrum_hiper <- spectrum(sujeto_hiper$PAM, plot = FALSE)
+energy_low_freq_hiper <- sum(spectrum_hiper$spec[spectrum_hiper$freq <= 0.1])
+energy_high_freq_hiper <- sum(spectrum_hiper$spec[spectrum_hiper$freq > 0.1])
+cat("Energía en frecuencias bajas (hipercápnico):", energy_low_freq_hiper, "\n")
+cat("Energía en frecuencias altas (hipercápnico):", energy_high_freq_hiper, "\n")
+
+# Calcular error cuadrático medio (MSE) para normocápnico
+mse_normo <- mean((vfsc_simulado_normo - sujeto_normo$VFSC)^2)
+cat("Error cuadrático medio (Normocápnico):", mse_normo, "\n")
+
+# Calcular error cuadrático medio (MSE) para hipercápnico
+mse_hiper <- mean((vfsc_simulado_hiper - sujeto_hiper$VFSC)^2)
+cat("Error cuadrático medio (Hipercápnico):", mse_hiper, "\n")
+
+# Resumen estadístico para normocápnico
+summary_normo <- summary(sujeto_normo[, c("PAM", "VFSC")])
+cat("Estadísticas descriptivas (Normocápnico):\n")
+print(summary_normo)
+
+# Resumen estadístico para hipercápnico
+summary_hiper <- summary(sujeto_hiper[, c("PAM", "VFSC")])
+cat("Estadísticas descriptivas (Hipercápnico):\n")
+print(summary_hiper)
+
 
 # 4. Simular la aplicación de un escalón inverso de PAM
 # Escalón inverso en PAM para normocápnico
