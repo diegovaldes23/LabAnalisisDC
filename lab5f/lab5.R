@@ -5,10 +5,10 @@ library(oce)     # Para transformadas espectrales y gráficos avanzados
 
 # Configurar ruta para archivos
 current_dir <- getwd()
-file_normo <- "DY000.txt"
-file_hiper <- "DY001.txt"
+file_normo <- "DY000.txt"  # Archivo para el sujeto normocápnico
+file_hiper <- "DY001.txt"  # Archivo para el sujeto hipercápnico
 
-# Cargar archivos si existen
+# Cargar los datos
 file_path_normo <- list.files(path = current_dir, pattern = file_normo, recursive = TRUE, full.names = TRUE)
 file_path_hiper <- list.files(path = current_dir, pattern = file_hiper, recursive = TRUE, full.names = TRUE)
 
@@ -20,39 +20,51 @@ if (length(file_path_normo) > 0 && length(file_path_hiper) > 0) {
   stop("Uno o ambos archivos no fueron encontrados.")
 }
 
-# Graficar las señales
-plot(sujeto_normo$PAM, type = "l", col = "blue", main = "Señal PAM - Sujeto Normocápnico")
+# 1. Analizar la relación entre la PAM y la VFSC mediante correlación cruzada
+# Correlación cruzada para normocápnico
+ccf(sujeto_normo$PAM, sujeto_normo$VFSC, main = "Correlación Cruzada (Normocápnico)", ylab = "Correlación", xlab = "Lag")
+cc_normo <- ccf(sujeto_normo$PAM, sujeto_normo$VFSC, plot = FALSE)
+lag_max_normo <- cc_normo$lag[which.max(cc_normo$acf)]
+cat("Lag máximo para normocápnico:", lag_max_normo, "\n")
+
+# Correlación cruzada para hipercápnico
+ccf(sujeto_hiper$PAM, sujeto_hiper$VFSC, main = "Correlación Cruzada (Hipercápnico)", ylab = "Correlación", xlab = "Lag")
+cc_hiper <- ccf(sujeto_hiper$PAM, sujeto_hiper$VFSC, plot = FALSE)
+lag_max_hiper <- cc_hiper$lag[which.max(cc_hiper$acf)]
+cat("Lag máximo para hipercápnico:", lag_max_hiper, "\n")
+
+# 2. Calcular la autocorrelación de la señal PAM
+# Autocorrelación de PAM para normocápnico
+acf(sujeto_normo$PAM, main = "Autocorrelación de PAM (Normocápnico)", ylab = "Autocorrelación", xlab = "Lag")
+
+# Autocorrelación de PAM para hipercápnico
+acf(sujeto_hiper$PAM, main = "Autocorrelación de PAM (Hipercápnico)", ylab = "Autocorrelación", xlab = "Lag")
+
+# 3. Modelar la relación entre la PAM y la VFSC utilizando una función de transferencia
+# Transformada de Fourier para normocápnico
+spec.pgram(cbind(sujeto_normo$PAM, sujeto_normo$VFSC), taper = 0.1, plot = TRUE, main = "Transformada de Fourier (Normocápnico)")
+
+# Transformada de Fourier para hipercápnico
+spec.pgram(cbind(sujeto_hiper$PAM, sujeto_hiper$VFSC), taper = 0.1, plot = TRUE, main = "Transformada de Fourier (Hipercápnico)")
+
+# 4. Simular la aplicación de un escalón inverso de PAM
+# Escalón inverso en PAM para normocápnico
+escalon_normo <- rep(0, length(sujeto_normo$PAM))
+escalon_normo[1:10] <- -20
+vfsc_simulado_normo <- sujeto_normo$VFSC + escalon_normo
+
+# Graficar respuesta
+plot(vfsc_simulado_normo, type = "l", col = "blue", main = "Respuesta a Escalón Inverso (Normocápnico)", ylab = "VFSC", xlab = "Tiempo")
 lines(sujeto_normo$VFSC, col = "red")
-legend("topright", legend = c("PAM", "VFSC"), col = c("blue", "red"), lty = 1)
-
-# Correlación cruzada entre PAM y VFSC
-ccf(sujeto_normo$PAM, sujeto_normo$VFSC, main = "Correlación Cruzada (Normocápnico)")
-
-# Autocorrelación de PAM
-acf(sujeto_normo$PAM, main = "Autocorrelación de PAM (Normocápnico)")
-
-# Transformada de Fourier (frecuencia)
-spec.pgram(cbind(sujeto_normo$PAM, sujeto_normo$VFSC), taper = 0.1, plot = TRUE)
-
-# Simular un escalón inverso en PAM
-escalon <- rep(0, length(sujeto_normo$PAM))  # Crear un vector de ceros
-escalon[1:10] <- -20  # Aplicar el escalón en los primeros 10 puntos
-
-# Simular la respuesta de VFSC al escalón inverso
-vfsc_simulado <- sujeto_normo$VFSC + escalon  # Suma del escalón a VFSC
-
-# Graficar la respuesta simulada
-plot(vfsc_simulado, type = "l", col = "blue", main = "Respuesta a Escalón Inverso")
-lines(sujeto_normo$VFSC, col = "red")  # Comparar con la señal original
 legend("topright", legend = c("Simulado", "Original"), col = c("blue", "red"), lty = 1)
 
-# Comparación entre normocápnico e hipercápnico
-par(mfrow = c(2, 1))
-plot(sujeto_normo$PAM, type = "l", col = "blue", main = "Sujeto Normocápnico")
-lines(sujeto_normo$VFSC, col = "red")
-plot(sujeto_hiper$PAM, type = "l", col = "green", main = "Sujeto Hipercápnico")
-lines(sujeto_hiper$VFSC, col = "orange")
-legend("topright", legend = c("PAM", "VFSC"), col = c("blue", "red", "green", "orange"), lty = 1)
+# Escalón inverso en PAM para hipercápnico
+escalon_hiper <- rep(0, length(sujeto_hiper$PAM))
+escalon_hiper[1:10] <- -20
+vfsc_simulado_hiper <- sujeto_hiper$VFSC + escalon_hiper
 
-# Conclusión
-print("Comparación y análisis finalizado.")
+# Graficar respuesta
+plot(vfsc_simulado_hiper, type = "l", col = "blue", main = "Respuesta a Escalón Inverso (Hipercápnico)", ylab = "VFSC", xlab = "Tiempo")
+lines(sujeto_hiper$VFSC, col = "red")
+legend("topright", legend = c("Simulado", "Original"), col = c("blue", "red"), lty = 1)
+
